@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Server } from 'socket.io';
+import { SocketService } from './services/socket.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,6 +29,17 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  const server = app.getHttpServer();
+  const io = new Server(server, {
+    cors: {
+      origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+      methods: ['GET', 'POST'],
+    },
+  });
+
+  const socketService = app.get(SocketService);
+  socketService.setSocketServer(io);
 
   // Start the server
   const port = configService.get('PORT') || 3001;

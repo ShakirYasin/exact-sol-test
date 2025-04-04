@@ -38,6 +38,9 @@ export class Task {
   @ManyToOne(() => User, (user) => user.tasks)
   assignedTo: User;
 
+  @ManyToOne(() => User, (user) => user.createdTasks)
+  createdBy: User;
+
   @CreateDateColumn()
   createdAt: Date;
 

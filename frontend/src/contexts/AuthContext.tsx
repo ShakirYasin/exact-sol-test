@@ -7,13 +7,7 @@ import {
 } from "react";
 import { useRouter } from "next/router";
 import { useAuth as useAuthApi } from "../hooks/useAuth";
-
-interface User {
-  id: string;
-  email: string;
-  role: "admin" | "user";
-}
-
+import { User } from "../types";
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
@@ -36,26 +30,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const router = useRouter();
-  const { login: loginApi, register: registerApi } = useAuthApi();
+  const { login: loginApi, register: registerApi, getMe } = useAuthApi();
 
   useEffect(() => {
-    // Check if user is authenticated
     const token = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
-    if (token && storedUser) {
+    if (token) {
       setIsAuthenticated(true);
-      setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  useEffect(() => {
+    if (getMe.data) {
+      setUser(getMe.data);
+      setIsAuthenticated(true);
+    } else if (getMe.error) {
+      setUser(null);
+      setIsAuthenticated(false);
+      localStorage.removeItem("token");
+    }
+  }, [getMe.data, getMe.error]);
 
   const login = async (email: string, password: string) => {
     try {
       setError(null);
       const result = await loginApi.mutateAsync({ email, password });
       localStorage.setItem("token", result.access_token);
-      localStorage.setItem("user", JSON.stringify(result.user));
       setIsAuthenticated(true);
-      setUser(result.user);
+      getMe.refetch();
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Login failed"));
@@ -71,8 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }) => {
     try {
       setError(null);
-      const user = await registerApi.mutateAsync(data);
-      // After registration, log the user in
+      await registerApi.mutateAsync(data);
       await login(data.email, data.password);
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Registration failed"));
@@ -82,7 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("user");
     setIsAuthenticated(false);
     setUser(null);
     router.push("/login");
@@ -96,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
-        isLoading: loginApi.isPending || registerApi.isPending,
+        isLoading: loginApi.isPending || registerApi.isPending || getMe.isLoading,
         error,
       }}
     >

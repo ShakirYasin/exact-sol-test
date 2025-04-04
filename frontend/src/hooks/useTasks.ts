@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../contexts/AuthContext";
 import { useWebSocket } from "./useWebSocket";
+import { TaskStatus, TaskStatusType } from "../types";
 
 export interface Task {
   id: string;
   title: string;
   description: string;
-  status: "pending" | "in_progress" | "completed";
+  status: TaskStatus;
   dueDate: string;
   assignedTo: {
     id: string;
@@ -23,23 +24,16 @@ export interface Task {
   updatedAt: string;
 }
 
-interface CreateTaskDto {
-  title: string;
-  description: string;
-  dueDate: string;
-}
-
-interface UpdateTaskDto {
-  title?: string;
-  description?: string;
-  status?: Task["status"];
-  dueDate?: string;
-}
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-const fetchTasks = async (token: string): Promise<Task[]> => {
-  const response = await fetch(`${API_URL}/tasks`, {
+const fetchTasks = async (status?: TaskStatus): Promise<Task[]> => {
+  const token = localStorage.getItem("token");
+  const url = new URL(`${API_URL}/tasks`);
+  if (status) {
+    url.searchParams.append('status', status);
+  }
+  
+  const response = await fetch(url.toString(), {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -72,7 +66,7 @@ const createTask = async (data: Partial<Task>) => {
 const updateTask = async (data: Partial<Task> & { id: string }) => {
   const token = localStorage.getItem("token");
   const response = await fetch(`${API_URL}/tasks/${data.id}`, {
-    method: "PUT",
+    method: "PATCH",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
@@ -114,8 +108,8 @@ const assignTask = async (data: { taskId: string; assigneeId: string }) => {
   return response.json();
 };
 
-export function useTasks() {
-  const { token } = useAuth();
+export function useTasks(status?: TaskStatusType) {
+  const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const { lastMessage } = useWebSocket();
 
@@ -124,9 +118,9 @@ export function useTasks() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["tasks"],
-    queryFn: () => fetchTasks(token || ""),
-    enabled: !!token,
+    queryKey: ["tasks", status],
+    queryFn: () => fetchTasks(status === 'all' ? undefined : status as TaskStatus),
+    enabled: isAuthenticated,
   });
 
   const createTaskMutation = useMutation({

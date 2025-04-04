@@ -4,9 +4,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { TasksModule } from './tasks/tasks.module';
-import { WebSocketModule } from './websocket/websocket.module';
 import { User } from './entities/user.entity';
 import { Task } from './entities/task.entity';
+import { EventLog, EventLogSchema } from './schemas/event-log.schema';
+import { SocketService } from './services/socket.service';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -24,9 +26,14 @@ import { Task } from './entities/task.entity';
     MongooseModule.forRoot(
       process.env.MONGODB_URI || 'mongodb://localhost:27017/taskmanager',
     ),
+    MongooseModule.forFeature([
+      { name: EventLog.name, schema: EventLogSchema },
+    ]),
     AuthModule,
     TasksModule,
-    WebSocketModule,
+    UsersModule,
   ],
+  providers: [SocketService],
+  exports: [SocketService],
 })
 export class AppModule {}

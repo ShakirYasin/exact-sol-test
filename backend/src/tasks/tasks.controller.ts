@@ -12,25 +12,28 @@ import {
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { Task } from '../entities/task.entity';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-
+import { JwtGuard } from '../auth/jwt.guard';
+import { RequestWithUser } from 'src/types';
 @Controller('tasks')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtGuard)
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
-  create(@Body() createTaskDto: Partial<Task>, @Request() req) {
+  create(
+    @Body() createTaskDto: Partial<Task>,
+    @Request() req: RequestWithUser,
+  ) {
     return this.tasksService.create(createTaskDto, req.user.userId);
   }
 
   @Get()
-  findAll(@Request() req, @Query('status') status?: string) {
+  findAll(@Request() req: RequestWithUser, @Query('status') status?: string) {
     return this.tasksService.findAll(req.user.userId, { status });
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @Request() req) {
+  findOne(@Param('id') id: string, @Request() req: RequestWithUser) {
     return this.tasksService.findOne(id, req.user.userId);
   }
 
@@ -38,13 +41,13 @@ export class TasksController {
   update(
     @Param('id') id: string,
     @Body() updateTaskDto: Partial<Task>,
-    @Request() req,
+    @Request() req: RequestWithUser,
   ) {
     return this.tasksService.update(id, updateTaskDto, req.user.userId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @Request() req) {
+  remove(@Param('id') id: string, @Request() req: RequestWithUser) {
     return this.tasksService.remove(id, req.user.userId);
   }
 
@@ -52,7 +55,7 @@ export class TasksController {
   assignTask(
     @Param('id') id: string,
     @Body('assigneeId') assigneeId: string,
-    @Request() req,
+    @Request() req: RequestWithUser,
   ) {
     return this.tasksService.assignTask(id, req.user.userId, assigneeId);
   }

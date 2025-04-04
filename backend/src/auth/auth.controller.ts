@@ -1,6 +1,16 @@
-import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Request,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { User } from '../entities/user.entity';
+import { JwtGuard } from './jwt.guard';
+import { RequestWithUser } from 'src/types';
 
 @Controller('auth')
 export class AuthController {
@@ -21,5 +31,11 @@ export class AuthController {
   @Post('register')
   async register(@Body() registerDto: Partial<User>) {
     return this.authService.register(registerDto);
+  }
+
+  @Get('me')
+  @UseGuards(JwtGuard)
+  async getProfile(@Request() req: RequestWithUser) {
+    return this.authService.findById(req.user.userId);
   }
 }

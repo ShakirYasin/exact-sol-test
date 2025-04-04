@@ -1,10 +1,6 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { User } from "../types";
 
-interface User {
-  id: string;
-  email: string;
-  role: "admin" | "user";
-}
 
 interface LoginResponse {
   access_token: string;
@@ -26,7 +22,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 export function useAuth() {
   const login = useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,7 +43,7 @@ export function useAuth() {
 
   const register = useMutation({
     mutationFn: async (userData: RegisterData) => {
-      const response = await fetch(`${API_URL}/api/auth/register`, {
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,8 +62,34 @@ export function useAuth() {
     },
   });
 
+  const getMe = useQuery({
+    queryKey: ["me"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return null;
+
+      const response = await fetch(`${API_URL}/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          return null;
+        }
+        throw new Error("Failed to fetch user");
+      }
+
+      return response.json() as Promise<User>;
+    },
+  });
+
   return {
     login,
     register,
+    getMe,
   };
 }

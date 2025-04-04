@@ -1,8 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Task } from '../entities/task.entity';
+import { Task, TaskStatus } from '../entities/task.entity';
 import { User } from '../entities/user.entity';
+import { SocketService } from '../services/socket.service';
 
 @Injectable()
 export class TasksService {
@@ -11,6 +16,7 @@ export class TasksService {
     private taskRepository: Repository<Task>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private socketService: SocketService,
   ) {}
 
   async create(createTaskDto: Partial<Task>, userId: string): Promise<Task> {
@@ -22,9 +28,19 @@ export class TasksService {
     const task = this.taskRepository.create({
       ...createTaskDto,
       assignedTo: user,
+      createdBy: user,
     });
 
-    return this.taskRepository.save(task);
+    const savedTask = await this.taskRepository.save(task);
+
+    await this.socketService.logTaskEvent({
+      taskId: savedTask.id,
+      userId,
+      action: 'created',
+      metadata: { task: savedTask },
+    });
+
+    return savedTask;
   }
 
   async findAll(
@@ -33,10 +49,13 @@ export class TasksService {
   ): Promise<Task[]> {
     const query = this.taskRepository
       .createQueryBuilder('task')
-      .leftJoinAndSelect('task.assignedTo', 'user')
-      .where('user.id = :userId', { userId });
+      .leftJoinAndSelect('task.assignedTo', 'assignedTo')
+      .leftJoinAndSelect('task.createdBy', 'createdBy');
 
     if (filters?.status) {
+      if (!Object.values(TaskStatus).includes(filters.status as TaskStatus)) {
+        throw new BadRequestException('Invalid task status');
+      }
       query.andWhere('task.status = :status', { status: filters.status });
     }
 
@@ -46,9 +65,9 @@ export class TasksService {
   async findOne(id: string, userId: string): Promise<Task> {
     const task = await this.taskRepository
       .createQueryBuilder('task')
-      .leftJoinAndSelect('task.assignedTo', 'user')
+      .leftJoinAndSelect('task.assignedTo', 'assignedTo')
+      .leftJoinAndSelect('task.createdBy', 'createdBy')
       .where('task.id = :id', { id })
-      .andWhere('user.id = :userId', { userId })
       .getOne();
 
     if (!task) {
@@ -64,13 +83,36 @@ export class TasksService {
     userId: string,
   ): Promise<Task> {
     const task = await this.findOne(id, userId);
+
+    if (updateTaskDto.status) {
+      if (!Object.values(TaskStatus).includes(updateTaskDto.status)) {
+        throw new BadRequestException('Invalid task status');
+      }
+    }
+
     Object.assign(task, updateTaskDto);
-    return this.taskRepository.save(task);
+    const updatedTask = await this.taskRepository.save(task);
+
+    await this.socketService.logTaskEvent({
+      taskId: updatedTask.id,
+      userId,
+      action: 'updated',
+      metadata: { task: updatedTask },
+    });
+
+    return updatedTask;
   }
 
   async remove(id: string, userId: string): Promise<void> {
     const task = await this.findOne(id, userId);
     await this.taskRepository.remove(task);
+
+    await this.socketService.logTaskEvent({
+      taskId: id,
+      userId,
+      action: 'deleted',
+      metadata: { taskId: id },
+    });
   }
 
   async assignTask(
@@ -88,6 +130,15 @@ export class TasksService {
     }
 
     task.assignedTo = assignee;
-    return this.taskRepository.save(task);
+    const updatedTask = await this.taskRepository.save(task);
+
+    await this.socketService.logTaskEvent({
+      taskId: updatedTask.id,
+      userId,
+      action: 'assigned',
+      metadata: { task: updatedTask, assigneeId },
+    });
+
+    return updatedTask;
   }
 }
