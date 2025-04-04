@@ -1,12 +1,13 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task, TaskStatus } from '../entities/task.entity';
-import { User } from '../entities/user.entity';
+import { User, UserRole } from '../entities/user.entity';
 import { SocketService } from '../services/socket.service';
 
 @Injectable()
@@ -50,7 +51,8 @@ export class TasksService {
     const query = this.taskRepository
       .createQueryBuilder('task')
       .leftJoinAndSelect('task.assignedTo', 'assignedTo')
-      .leftJoinAndSelect('task.createdBy', 'createdBy');
+      .leftJoinAndSelect('task.createdBy', 'createdBy')
+      .orderBy('task.createdAt', 'DESC');
 
     if (filters?.status) {
       if (!Object.values(TaskStatus).includes(filters.status as TaskStatus)) {
@@ -62,13 +64,18 @@ export class TasksService {
     return query.getMany();
   }
 
-  async findOne(id: string, userId: string): Promise<Task> {
-    const task = await this.taskRepository
+  async findOne(id: string, userId?: string): Promise<Task> {
+    const taskQuery = this.taskRepository
       .createQueryBuilder('task')
       .leftJoinAndSelect('task.assignedTo', 'assignedTo')
       .leftJoinAndSelect('task.createdBy', 'createdBy')
-      .where('task.id = :id', { id })
-      .getOne();
+      .where('task.id = :id', { id });
+
+    if (userId) {
+      taskQuery.andWhere('task.createdBy.id = :userId', { userId });
+    }
+
+    const task = await taskQuery.getOne();
 
     if (!task) {
       throw new NotFoundException('Task not found');
@@ -82,7 +89,7 @@ export class TasksService {
     updateTaskDto: Partial<Task>,
     userId: string,
   ): Promise<Task> {
-    const task = await this.findOne(id, userId);
+    const task = await this.findOne(id);
 
     if (updateTaskDto.status) {
       if (!Object.values(TaskStatus).includes(updateTaskDto.status)) {
@@ -104,7 +111,11 @@ export class TasksService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    const task = await this.findOne(id, userId);
+    const task = await this.findOne(id);
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (task.createdBy.id !== userId && user?.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('You are not allowed to delete this task');
+    }
     await this.taskRepository.remove(task);
 
     await this.socketService.logTaskEvent({
@@ -120,7 +131,7 @@ export class TasksService {
     userId: string,
     assigneeId: string,
   ): Promise<Task> {
-    const task = await this.findOne(taskId, userId);
+    const task = await this.findOne(taskId);
     const assignee = await this.userRepository.findOne({
       where: { id: assigneeId },
     });

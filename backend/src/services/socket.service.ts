@@ -22,16 +22,10 @@ export class SocketService {
   private setupEventHandlers() {
     this.io.on('connection', (socket) => {
       console.log(`Client connected: ${socket.id}`);
-
-      socket.on('joinTaskRoom', () => {
-        socket.join(`tasks-room`);
-      });
-
-      socket.on('leaveTaskRoom', () => {
-        socket.leave(`tasks-room`);
-      });
+      socket.join(`tasks-room`);
 
       socket.on('disconnect', () => {
+        socket.leave(`tasks-room`);
         console.log(`Client disconnected: ${socket.id}`);
       });
     });
@@ -46,8 +40,9 @@ export class SocketService {
         description: `Task ${eventData.taskId} was ${eventData.action}`,
       });
 
-      // Emit event to task room
-      this.io?.to(`tasks-room`).emit('taskUpdate', {
+      console.log('Task event logged:', eventData);
+
+      this.io?.to(`tasks-room`).emit('TASK_UPDATED', {
         type: eventData.action,
         data: eventData,
       });

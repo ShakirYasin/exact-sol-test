@@ -22,6 +22,7 @@ export default function DashboardPage() {
     updateTask,
     deleteTask,
     assignTask,
+    refetch
   } = useTasks(selectedStatus);
 
   useEffect(() => {
@@ -81,6 +82,16 @@ export default function DashboardPage() {
               >
                 Create New Task
               </Button>
+              <div className="relative">
+                {user.role === "admin" && (
+                  <span className="absolute -top-4 -right-2 px-1.5 py-0.5 rounded-md bg-red-500 text-white text-xs font-medium">
+                    Admin
+                  </span>
+                )}
+                <span className="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium">
+                  {user.firstName} {user.lastName}
+                </span>
+              </div>
               <button
                 onClick={logout}
                 className="px-4 py-2 rounded-xl text-red-600 hover:bg-red-50 transition duration-200"
@@ -127,10 +138,10 @@ export default function DashboardPage() {
                 task={editingTask}
                 onSubmit={async (data) => {
                   if (editingTask) {
-                    await updateTask({ id: editingTask.id, ...data });
+                    updateTask({ id: editingTask.id, ...data });
                     setEditingTask(null);
                   } else {
-                    await createTask(data);
+                    createTask(data);
                     setShowTaskForm(false);
                   }
                 }}
@@ -140,7 +151,10 @@ export default function DashboardPage() {
                 }}
                 isLoading={false}
                 currentUserId={user.id}
-                
+                onAssign={(taskId, assigneeId) => {
+                  assignTask({ taskId, assigneeId })
+                  refetch()
+                }}
               />
             </div>
           </div>

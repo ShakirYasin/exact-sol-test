@@ -4,14 +4,22 @@ import { Input } from "../ui/Input";
 import { Task } from "../../hooks/useTasks";
 import { useUsers } from "../../hooks/useUsers";
 import { TaskStatus } from "../../types";
+import { format, parse } from "date-fns";
+
+interface TaskFormData {
+  title: string;
+  description: string;
+  dueDate: string;
+  status: TaskStatus;
+  assignedTo: string;
+}
 
 interface TaskFormProps {
   task: Task | null;
-  onSubmit: (data: Partial<Task>) => void;
+  onSubmit: (data: Partial<Task & { assignedTo: { id: string } }>) => void;
   onCancel: () => void;
   isLoading?: boolean;
   currentUserId: string;
-  onAssign?: (taskId: string, assigneeId: string) => Promise<void>;
 }
 
 export function TaskForm({
@@ -19,33 +27,32 @@ export function TaskForm({
   onSubmit,
   onCancel,
   isLoading,
-  currentUserId,
-  onAssign,
 }: TaskFormProps) {
   const { users } = useUsers();
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm({
+  } = useForm<TaskFormData>({
     defaultValues: {
       title: task?.title || "",
       description: task?.description || "",
-      dueDate: task?.dueDate
-        ? new Date(task.dueDate).toISOString().split("T")[0]
-        : "",
+      dueDate: task?.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd") : "",
       status: task?.status || TaskStatus.PENDING,
+      assignedTo: task?.assignedTo?.id,
     },
   });
 
-  const handleAssigneeChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    if (task?.id && onAssign) {
-      await onAssign(task.id, e.target.value);
-    }
+  const handleFormSubmit = (data: TaskFormData) => {
+    const formattedData = {
+      ...data,
+      dueDate: data.dueDate ? parse(data.dueDate, "yyyy-MM-dd", new Date()).toISOString() : undefined,
+    };
+    onSubmit(formattedData);
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
       <div>
         <Input
           label="Title"
@@ -90,8 +97,7 @@ export function TaskForm({
           Assign To
         </label>
         <select
-          value={task?.assignedTo?.id || currentUserId}
-          onChange={handleAssigneeChange}
+          {...register("assignedTo")}
           className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           {users.map((user) => (

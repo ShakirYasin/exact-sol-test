@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../contexts/AuthContext";
 import { useWebSocket } from "./useWebSocket";
 import { TaskStatus, TaskStatusType } from "../types";
+import { useEffect } from "react";
 
 export interface Task {
   id: string;
@@ -111,12 +112,22 @@ const assignTask = async (data: { taskId: string; assigneeId: string }) => {
 export function useTasks(status?: TaskStatusType) {
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
-  const { lastMessage } = useWebSocket();
+  const { lastMessage, subscribeToTaskUpdates } = useWebSocket();
+
+  useEffect(() => {
+    const unsubscribe = subscribeToTaskUpdates();
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [subscribeToTaskUpdates]);
 
   const {
     data: tasks = [],
     isLoading,
     error,
+    refetch
   } = useQuery({
     queryKey: ["tasks", status],
     queryFn: () => fetchTasks(status === 'all' ? undefined : status as TaskStatus),
@@ -154,14 +165,12 @@ export function useTasks(status?: TaskStatusType) {
 
   // Handle WebSocket messages
   if (lastMessage) {
-    const message = JSON.parse(lastMessage.data);
-    if (message.type === "TASK_UPDATED") {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-    }
+    queryClient.invalidateQueries({ queryKey: ["tasks"] });
   }
 
   return {
     tasks,
+    refetch,
     isLoading,
     error,
     createTask: createTaskMutation.mutate,

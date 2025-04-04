@@ -13,3 +13,10 @@ export interface User {
   lastName: string;
   role: "admin" | "user";
 }
+
+export interface TaskEventData {
+  taskId: string;
+  userId: string;
+  action: 'created' | 'updated' | 'deleted' | 'assigned';
+  metadata?: Record<string, unknown>;
+}

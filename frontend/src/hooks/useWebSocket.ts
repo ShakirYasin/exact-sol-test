@@ -1,61 +1,53 @@
 import { useEffect, useRef, useState } from "react";
+import { Socket, io } from "socket.io-client";
+import { TaskEventData } from "../types";
+
+interface TaskUpdateEvent {
+  type: string;
+  data: TaskEventData;
+}
 
 export function useWebSocket() {
-  const [lastMessage, setLastMessage] = useState<MessageEvent | null>(null);
-  const ws = useRef<WebSocket | null>(null);
+  const [lastMessage, setLastMessage] = useState<TaskUpdateEvent | null>(null);
+  const socket = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+    socket.current = io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3001", {
+      transports: ["websocket"],
+      autoConnect: true,
+    });
 
-    ws.current = new WebSocket(
-      `${process.env.NEXT_PUBLIC_WS_URL}?token=${token}`
-    );
+    socket.current.on("connect", () => {
+      console.log(`Client connected: ${socket.current?.id}`);
+    });
 
-    ws.current.onmessage = (event) => {
-      setLastMessage(event);
-    };
+    socket.current.on("disconnect", () => {
+      console.log(`Client disconnected: ${socket.current?.id}`);
+    });
 
-    return () => {
-      if (ws.current) {
-        ws.current.close();
-      }
-    };
+    // return () => {
+    //   if (socket.current) {
+    //     socket.current.disconnect();
+    //   }
+    // };
   }, []);
 
-  const joinTaskRoom = (taskId: string) => {
-    if (ws.current?.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({ type: "JOIN_TASK", taskId }));
-    }
-  };
+  const subscribeToTaskUpdates = () => {
+    if (!socket.current) return;
 
-  const leaveTaskRoom = (taskId: string) => {
-    if (ws.current?.readyState === WebSocket.OPEN) {
-      ws.current.send(JSON.stringify({ type: "LEAVE_TASK", taskId }));
-    }
-  };
-
-  const subscribeToTaskUpdates = (callback: (data: any) => void) => {
-    if (!ws.current) return;
-
-    const messageHandler = (event: MessageEvent) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "TASK_UPDATED") {
-        callback(data);
-      }
-    };
-
-    ws.current.addEventListener("message", messageHandler);
+    socket.current.on("TASK_UPDATED", (event: TaskUpdateEvent) => {
+      console.log("TASK_UPDATED", event);
+      setLastMessage(event);
+    });
 
     return () => {
-      ws.current?.removeEventListener("message", messageHandler);
+      socket.current?.off("TASK_UPDATED");
     };
   };
 
   return {
     lastMessage,
-    joinTaskRoom,
-    leaveTaskRoom,
     subscribeToTaskUpdates,
+    socket: socket.current,
   };
 }
