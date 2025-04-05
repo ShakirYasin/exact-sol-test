@@ -33,7 +33,7 @@ You can run this application either using Docker Compose for all services or run
    ```
 3. Start all services:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 4. The services will be available at:
    - Frontend: http://localhost:3000
@@ -55,7 +55,7 @@ You can run this application either using Docker Compose for all services or run
 
 2. Start the databases using Docker:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 3. Backend Setup:
