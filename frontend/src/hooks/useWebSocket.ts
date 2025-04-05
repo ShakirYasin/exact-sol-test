@@ -10,7 +10,7 @@ interface TaskUpdateEvent {
 export function useWebSocket() {
   const [lastMessage, setLastMessage] = useState<TaskUpdateEvent | null>(null);
   const socket = useRef<Socket | null>(null);
-
+  console.log("NEXT_PUBLIC_WS_URL", process.env.NEXT_PUBLIC_WS_URL);
   useEffect(() => {
     socket.current = io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3001", {
       transports: ["websocket"],
