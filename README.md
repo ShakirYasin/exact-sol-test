@@ -111,3 +111,31 @@ JWT_SECRET="your_jwt_secret_here"
 NEXT_PUBLIC_API_URL=http://localhost:3001/api
 ```
 
+## Creating an Admin User
+
+To create an admin user, you can make a POST request to the `/users/admin` endpoint with the following JSON payload:
+
+```json
+{
+  "email": "admin@example.com",
+  "password": "your_secure_password",
+  "firstName": "Admin",
+  "lastName": "User"
+}
+```
+
+Example using curl:
+```bash
+curl -X POST http://localhost:3001/api/users/admin \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@example.com", "password": "your_secure_password", "firstName": "Admin", "lastName": "User"}'
+```
+
+The system will automatically:
+- Hash the password securely
+- Set the user role to 'admin'
+- Prevent duplicate email addresses
+- Return the created admin user (without the password hash)
+
+Note: Make sure to create an admin user before starting to use the system, as certain operations may require admin privileges.
+
