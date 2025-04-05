@@ -14,6 +14,7 @@ export function useWebSocket() {
     autoConnect: true,
   }));
   console.log("NEXT_PUBLIC_WS_URL", process.env.NEXT_PUBLIC_WS_URL);
+  console.log("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL);
   useEffect(() => {
     if(!socket.current) {
       socket.current = io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3001", {
