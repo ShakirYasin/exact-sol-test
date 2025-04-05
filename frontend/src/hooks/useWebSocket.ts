@@ -9,13 +9,18 @@ interface TaskUpdateEvent {
 
 export function useWebSocket() {
   const [lastMessage, setLastMessage] = useState<TaskUpdateEvent | null>(null);
-  const socket = useRef<Socket | null>(null);
+  const socket = useRef<Socket | null>(io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3001", {
+    transports: ["websocket"],
+    autoConnect: true,
+  }));
   console.log("NEXT_PUBLIC_WS_URL", process.env.NEXT_PUBLIC_WS_URL);
   useEffect(() => {
-    socket.current = io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3001", {
-      transports: ["websocket"],
-      autoConnect: true,
-    });
+    if(!socket.current) {
+      socket.current = io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3001", {
+        transports: ["websocket", "polling"],
+        autoConnect: true,
+      }); 
+    }
 
     socket.current.on("connect", () => {
       console.log(`Client connected: ${socket.current?.id}`);

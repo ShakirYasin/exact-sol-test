@@ -34,7 +34,7 @@ async function bootstrap() {
       methods: ['GET', 'POST'],
       credentials: true,
     },
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
   });
 
   const socketService = app.get(SocketService);
