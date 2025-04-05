@@ -24,6 +24,7 @@ export class JwtGuard implements CanActivate {
       };
       return true;
     } catch (error) {
+      console.log('Error in jwt.guard', JSON.stringify(error, null, 2));
       throw new UnauthorizedException('Invalid token');
     }
   }

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { TasksModule } from './tasks/tasks.module';
 import { User } from './entities/user.entity';
@@ -9,10 +9,13 @@ import { Task } from './entities/task.entity';
 import { EventLog, EventLogSchema } from './schemas/event-log.schema';
 import { SocketService } from './services/socket.service';
 import { UsersModule } from './users/users.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
@@ -21,17 +24,22 @@ import { UsersModule } from './users/users.module';
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_NAME || 'taskmanager',
       entities: [User, Task],
-      synchronize: process.env.NODE_ENV !== 'production',
+      synchronize: true,
     }),
-    MongooseModule.forRoot(
-      process.env.MONGODB_URI || 'mongodb://localhost:27017/taskmanager',
-    ),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_URI'),
+      }),
+      inject: [ConfigService],
+    }),
     MongooseModule.forFeature([
       { name: EventLog.name, schema: EventLogSchema },
     ]),
     AuthModule,
     TasksModule,
     UsersModule,
+    EventsModule,
   ],
   providers: [SocketService],
   exports: [SocketService],

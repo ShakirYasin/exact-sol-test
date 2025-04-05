@@ -1,6 +1,7 @@
 import { useAuth } from "../contexts/AuthContext";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function Login() {
   const { isAuthenticated, login } = useAuth();
@@ -81,6 +82,13 @@ export default function Login() {
           >
             Sign in
           </button>
+
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Don&apos;t have an account?{" "}
+            <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+              Sign up
+            </Link>
+          </p>
         </form>
       </div>
     </main>

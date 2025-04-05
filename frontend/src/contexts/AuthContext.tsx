@@ -8,6 +8,7 @@ import {
 import { useRouter } from "next/router";
 import { useAuth as useAuthApi } from "../hooks/useAuth";
 import { User } from "../types";
+
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
@@ -55,8 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       const result = await loginApi.mutateAsync({ email, password });
       localStorage.setItem("token", result.access_token);
+      
+      await getMe.refetch();
       setIsAuthenticated(true);
-      getMe.refetch();
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Login failed"));
@@ -87,15 +89,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
+  const isLoading = loginApi.isPending || registerApi.isPending || getMe.isLoading;
+
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated,
+        isAuthenticated: isAuthenticated && !!user,
         user,
         login,
         register,
         logout,
-        isLoading: loginApi.isPending || registerApi.isPending || getMe.isLoading,
+        isLoading,
         error,
       }}
     >

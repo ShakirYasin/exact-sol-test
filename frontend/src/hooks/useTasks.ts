@@ -163,7 +163,6 @@ export function useTasks(status?: TaskStatusType) {
     },
   });
 
-  // Handle WebSocket messages
   if (lastMessage) {
     queryClient.invalidateQueries({ queryKey: ["tasks"] });
   }

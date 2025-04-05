@@ -14,5 +14,5 @@ export default function Home() {
     }
   }, [isAuthenticated, router]);
 
-  return null; // This page will redirect immediately
+  return null;
 }

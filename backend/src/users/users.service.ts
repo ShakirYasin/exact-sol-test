@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -48,5 +49,35 @@ export class UsersService {
     } catch (error) {
       throw new UnauthorizedException('Admin creation failed');
     }
+  }
+
+  async updateProfile(
+    userId: string,
+    updateData: {
+      firstName: string;
+      lastName: string;
+      password?: string;
+      confirmPassword?: string;
+    },
+  ): Promise<Omit<User, 'password'>> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (updateData.password) {
+      if (updateData.password !== updateData.confirmPassword) {
+        throw new BadRequestException('Passwords do not match');
+      }
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+    }
+
+    const { confirmPassword: __, ...updateFields } = updateData;
+
+    Object.assign(user, updateFields);
+    await this.userRepository.save(user);
+
+    const { password: _, ...result } = user;
+    return result;
   }
 }

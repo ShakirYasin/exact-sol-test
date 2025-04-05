@@ -16,127 +16,98 @@ A full-stack task management system built with NestJS, Next.js, PostgreSQL, Mong
 - Node.js (v16 or higher)
 - PostgreSQL
 - MongoDB
-- npm or yarn
-
-## Project Structure
-
-```
-.
-├── backend/           # NestJS backend
-│   ├── src/
-│   │   ├── auth/     # Authentication module
-│   │   ├── tasks/    # Task management module
-│   │   ├── websocket/# WebSocket module
-│   │   └── entities/ # Database entities
-│   └── .env         # Environment variables
-└── frontend/        # Next.js frontend
-    ├── src/
-    │   ├── components/
-    │   ├── pages/
-    │   └── hooks/
-    └── .env.local
-```
+- npm or pnpm
+- Docker and Docker Compose
 
 ## Getting Started
 
-### Backend Setup
+You can run this application either using Docker Compose for all services or run the databases in Docker while running the backend and frontend manually. Choose the setup that best suits your needs.
 
-1. Navigate to the backend directory:
+### Option 1: Full Docker Compose Setup
 
+1. Make sure Docker and Docker Compose are installed on your system
+2. Copy the environment files:
    ```bash
+   cp backend/.env.example backend/.env
+   cp frontend/.env.example frontend/.env
+   ```
+3. Start all services:
+   ```bash
+   docker-compose up -d
+   ```
+4. The services will be available at:
+   - Frontend: http://localhost:3000
+   - Backend: http://localhost:3001
+   - PostgreSQL: localhost:5433
+   - MongoDB: localhost:27017
+
+### Option 2: Hybrid Setup (Databases in Docker, Services Manual)
+
+1. First, comment out the backend and frontend services in your docker-compose.yml:
+   ```yaml
+   # Comment out or remove these blocks
+   # backend:
+   #   build: ...
+   
+   # frontend:
+   #   build: ...
+   ```
+
+2. Start the databases using Docker:
+   ```bash
+   docker-compose up -d
+   ```
+
+3. Backend Setup:
+   ```bash
+   # Navigate to backend directory
    cd backend
-   ```
 
-2. Install dependencies:
+   # Copy environment file
+   cp .env.example .env
 
-   ```bash
+   # Install dependencies
    npm install
-   ```
 
-3. Create a PostgreSQL database named 'taskmanager'
-
-4. Configure environment variables in `.env`
-
-5. Start the development server:
-   ```bash
+   # Start development server
    npm run start:dev
    ```
+   The backend will be available at http://localhost:3001
 
-### Frontend Setup
-
-1. Navigate to the frontend directory:
-
+4. Frontend Setup:
    ```bash
+   # In a new terminal, navigate to frontend directory
    cd frontend
-   ```
 
-2. Install dependencies:
+   # Copy environment file
+   cp .env.example .env.local
 
-   ```bash
+   # Install dependencies
    npm install
-   ```
 
-3. Configure environment variables in `.env.local`
-
-4. Start the development server:
-   ```bash
+   # Start development server
    npm run dev
    ```
+   The frontend will be available at http://localhost:3000
 
-## API Endpoints
+### Environment Configuration
 
-### Authentication
+Make sure to update the following environment files with your configurations:
 
-- POST /auth/register - Register a new user
-- POST /auth/login - Login user
-
-### Tasks
-
-- GET /tasks - Get all tasks
-- GET /tasks/:id - Get a specific task
-- POST /tasks - Create a new task
-- PATCH /tasks/:id - Update a task
-- DELETE /tasks/:id - Delete a task
-- POST /tasks/:id/assign - Assign a task to a user
-
-## WebSocket Events
-
-- taskUpdate - Real-time task updates
-- joinTaskRoom - Join a task's room for updates
-- leaveTaskRoom - Leave a task's room
-
-## Testing
-
-### Backend Tests
-
-```bash
-cd backend
-npm run test
+#### Backend (.env)
+```env
+PORT=3001
+DB_HOST=localhost
+DB_PORT=5433
+DB_USERNAME=postgres
+DB_PASSWORD=your_password_here
+DB_NAME=taskmanager
+MONGODB_URI=mongodb://localhost:27017/taskmanager
+JWT_SECRET="your_jwt_secret_here"
 ```
 
-### Frontend Tests
-
-```bash
-cd frontend
-npm run test
+#### Frontend (.env)
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
 ```
 
-## Deployment
-
-The application can be deployed using Docker:
-
-```bash
-docker-compose up -d
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.

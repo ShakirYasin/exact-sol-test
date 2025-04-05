@@ -9,7 +9,7 @@ import { JwtGuard } from './jwt.guard';
 @Module({
   imports: [
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
+      secret: process.env.JWT_SECRET || 'secret-jwt-key',
       signOptions: { expiresIn: '1d' },
     }),
     TypeOrmModule.forFeature([User]),

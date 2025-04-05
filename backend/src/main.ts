@@ -10,7 +10,6 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const isDevelopment = configService.get('NODE_ENV') === 'development';
 
-  // Enable CORS
   app.enableCors({
     origin: isDevelopment ? true : configService.get('FRONTEND_URL'),
     credentials: true,
@@ -18,10 +17,8 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
-  // Add global prefix
   app.setGlobalPrefix('api');
 
-  // Enable validation pipes
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -43,7 +40,6 @@ async function bootstrap() {
   const socketService = app.get(SocketService);
   socketService.setSocketServer(io);
 
-  // Start the server
   const port = configService.get('PORT') || 3001;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);

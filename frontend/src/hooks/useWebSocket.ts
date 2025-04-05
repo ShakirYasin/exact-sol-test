@@ -25,11 +25,6 @@ export function useWebSocket() {
       console.log(`Client disconnected: ${socket.current?.id}`);
     });
 
-    // return () => {
-    //   if (socket.current) {
-    //     socket.current.disconnect();
-    //   }
-    // };
   }, []);
 
   const subscribeToTaskUpdates = () => {

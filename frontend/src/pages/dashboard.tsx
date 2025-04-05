@@ -16,13 +16,12 @@ export default function DashboardPage() {
 
   const {
     tasks,
-    isLoading,
+    isLoading: isTasksLoading,
     error,
     createTask,
     updateTask,
     deleteTask,
     assignTask,
-    refetch
   } = useTasks(selectedStatus);
 
   useEffect(() => {
@@ -32,29 +31,28 @@ export default function DashboardPage() {
   }, [isAuthenticated, router]);
 
   const handleStatusChange = async (taskId: string, status: TaskStatus) => {
-    await updateTask({ id: taskId, status });
+    updateTask({ id: taskId, status });
   };
 
-  if (isLoading) {
+  if (!user || isTasksLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-red-500">
           Error loading tasks. Please try again.
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (
@@ -76,6 +74,14 @@ export default function DashboardPage() {
                 <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
                 <option value={TaskStatus.COMPLETED}>Completed</option>
               </select>
+              {user.role === "admin" && (
+                <Button
+                  onClick={() => router.push('/events')}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 transition duration-200"
+                >
+                  View Events
+                </Button>
+              )}
               <Button
                 onClick={() => setShowTaskForm(true)}
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition duration-200"
@@ -88,9 +94,12 @@ export default function DashboardPage() {
                     Admin
                   </span>
                 )}
-                <span className="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium">
+                <button
+                  onClick={() => router.push('/profile')}
+                  className="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 transition duration-200"
+                >
                   {user.firstName} {user.lastName}
-                </span>
+                </button>
               </div>
               <button
                 onClick={logout}
@@ -151,10 +160,6 @@ export default function DashboardPage() {
                 }}
                 isLoading={false}
                 currentUserId={user.id}
-                onAssign={(taskId, assigneeId) => {
-                  assignTask({ taskId, assigneeId })
-                  refetch()
-                }}
               />
             </div>
           </div>
